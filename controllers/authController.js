@@ -6,23 +6,11 @@ const authMiddleware = require("../middleware/authMiddleware"); // Import middle
 const client = new OAuth2Client(process.env.GG_CLIENT_ID);
 
 // Đăng ký người dùng
-// exports.register = async (req, res) => {
-//   const { name, email, password } = req.body;
-
-//   try {
-//     const user = new User({ name, email, password });
-//     await user.save();
-//     res.status(201).json({ message: "User registered successfully" });
-//   } catch (err) {
-//     res.status(400).json({ message: err.message });
-//   }
-// };
-// Đăng ký người dùng
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { username, email, password } = req.body;
 
   try {
-    const user = new User({ name, email, password });
+    const user = new User({ username, email, password });
     await user.save();
     res.status(201).json({ message: "Người dùng đã đăng ký thành công" });
   } catch (err) {
@@ -38,17 +26,17 @@ exports.register = async (req, res) => {
 
 // Đăng nhập người dùng
 exports.login = async (req, res) => {
-  const { name, password } = req.body;
+  const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ name });
+    const user = await User.findOne({ username });
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Thông tin đăng nhập không hợp lệ" });
     }
     const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
-    res.status(200).json({ message: "Login successful", token: jwtToken });
+    res.status(200).json({ message: "Đăng nhập thành công", token: jwtToken });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -58,7 +46,7 @@ exports.googleLogin = async (req, res) => {
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({ message: "Google token is missing" });
+    return res.status(400).json({ message: "Thiếu token Google" });
   }
 
   try {
@@ -68,25 +56,52 @@ exports.googleLogin = async (req, res) => {
     });
     const { email, name, picture } = ticket.getPayload();
 
-    // Tìm người dùng trong database
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Nếu người dùng chưa tồn tại, tạo một tài khoản mới
       user = new User({
-        name,
+        username: name, // Giả định dùng name làm username
         email,
         avatar: picture,
-        isGoogleUser: true, // Đánh dấu đây là người dùng Google
+        isGoogleUser: true,
       });
       await user.save();
     }
 
-    // Tạo token cho người dùng và gửi phản hồi
-    const userToken = user.generateAuthToken(); // Giả định bạn có phương thức này trong model
+    const userToken = user.generateAuthToken();
     res.status(200).json({ token: userToken, user });
   } catch (error) {
     console.error("Error during Google login:", error);
-    res.status(400).send("Google login failed");
+    res.status(400).send("Đăng nhập Google thất bại");
+  }
+};
+
+// Đăng nhập cho quản lý
+exports.adminLogin = async (req, res) => {
+  const { username, password, role } = req.body;
+  console.log("Username:", username);
+  console.log("Password:", password);
+  console.log("Role:", role);
+  try {
+    const user = await User.findOne({ username, role }); // Tìm theo username và role
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ message: "Thông tin đăng nhập không hợp lệ" });
+    }
+
+    if (!["admin", "salesperson", "delivery staff"].includes(user.role)) {
+      return res.status(403).json({ message: "Truy cập bị từ chối" });
+    }
+
+    const jwtToken = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    res.status(200).json({ 
+      message: "Đăng nhập thành công", 
+      token: jwtToken, 
+      role: user.role 
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
