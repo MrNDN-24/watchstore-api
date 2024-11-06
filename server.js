@@ -1,25 +1,28 @@
-// Server setup
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const authRoutes = require('./routes/authRoutes');
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const homeRoutes = require("./routes/homeRoutes");
+const User = require("./models/User"); // Nhập model User
 
 dotenv.config();
 
 const app = express();
 
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.log(err));
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log(err));
 
 // Middleware
 const corsOptions = {
-  origin: 'http://localhost:3000', // Địa chỉ frontend của bạn
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: ["http://localhost:3000", "http://localhost:3001"],
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // Nếu bạn cần gửi cookies
 };
 
@@ -27,7 +30,9 @@ app.use(cors(corsOptions));
 app.use(express.json()); // Phân tích dữ liệu JSON trong request
 
 // Định nghĩa các route
-app.use('/api/auth', authRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api", userRoutes);
+app.use("/homepage", homeRoutes);
 
 // Khởi động server
 const PORT = process.env.PORT || 5000;
