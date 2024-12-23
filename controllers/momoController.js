@@ -17,7 +17,7 @@ const momoPayment = async (req, res) => {
   var partnerCode = "MOMO";
   var redirectUrl = `${process.env.REACT_CLIENT_URL}/homepage`;
   // var ipnUrl = `${process.env.BACKEND_URL}/payment/callback`;
-  var ipnUrl = `{process.env.REACT_CLIENT_URL}/api/payment/callback`;
+  var ipnUrl = `${process.env.REACT_CLIENT_URL}/api/payment/callback`;
   var requestType = "payWithMethod";
   // var amount = order.total_price;
   // var amount = "50000";
